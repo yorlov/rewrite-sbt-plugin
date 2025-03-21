@@ -1,20 +1,15 @@
-enablePlugins(RewritePlugin)
+enablePlugins(SbtPlugin)
 
 organization := "it.orlov.sbt"
 name := "rewrite-plugin"
 version := "0.1.0-SNAPSHOT"
 
-javacOptions ++= Seq("--release", "21")
-
 resolvers += Resolver.mavenLocal
 
-recipeArtifacts ++= Seq(
-  "it.orlov.refactoring" % "refactoring-examples" % "0.1.0-SNAPSHOT"
-)
+libraryDependencies ++= Seq(
+  "org.openrewrite" % "rewrite-core",
+  "org.openrewrite" % "rewrite-java-21"
+).map(_ % "8.48.1")
 
-activeRecipes ++= Seq(
-  "it.orlov.refactoring.YoSimple2"
-)
-
-crossPaths := false // drop off Scala suffix from artifact names
-autoScalaLibrary := false // exclude scala-library from dependencies
+scriptedLaunchOpts ++= Seq("-Xmx1024M", s"-Dplugin.version=${version.value}")
+scriptedBufferLog := false

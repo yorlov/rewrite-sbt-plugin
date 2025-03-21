@@ -1,0 +1,2 @@
+> rewriteRun
+$ exec diff src/main/java/com/example/app/Runner.java expected/Runner.java

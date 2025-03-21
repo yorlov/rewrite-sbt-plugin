@@ -1,12 +1,14 @@
+package it.orlov.sbt
+
 import org.openrewrite.InMemoryExecutionContext
 import org.openrewrite.config.Environment
 import org.openrewrite.internal.InMemoryLargeSourceSet
 import org.openrewrite.java.JavaParser
-import sbt.Keys.*
+import sbt.Keys.{ivyConfigurations, libraryDependencies, sources, update}
 import sbt.{AutoPlugin, Compile, IO, ModuleID, Setting, config, moduleIDConfigurable, sbtSlashSyntaxRichConfiguration, settingKey, taskKey}
 
 import java.net.{URL, URLClassLoader}
-import scala.jdk.CollectionConverters.asJavaIterableConverter
+import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
 object RewritePlugin extends AutoPlugin {
 
@@ -18,7 +20,7 @@ object RewritePlugin extends AutoPlugin {
 
   import autoImport.*
 
-  val RewriteConfig = config("rewrite").hide
+  private val RewriteConfig = config("rewrite").hide
 
   override lazy val projectSettings: Seq[Setting[?]] = Seq(
     recipeArtifacts := Seq(),
@@ -41,7 +43,7 @@ object RewritePlugin extends AutoPlugin {
 
       val parser = JavaParser.fromJavaVersion.build()
 
-      val sourcePaths = (Compile / sources).value.map(_.toPath).toList.asJava
+      val sourcePaths = (Compile / sources).value.map(_.toPath).asJava
 
       val sourceFiles = parser.parse(sourcePaths, null, executionContext).toList
 
