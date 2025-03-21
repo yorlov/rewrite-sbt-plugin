@@ -9,5 +9,5 @@ recipeArtifacts ++= Seq(
 )
 
 activeRecipes ++= Seq(
-  "it.orlov.refactoring.YoSimple2"
+  "Yo"
 )

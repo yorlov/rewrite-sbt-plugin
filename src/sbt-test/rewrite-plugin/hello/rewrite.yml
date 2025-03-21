@@ -1,0 +1,6 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: Yo
+displayName: Hi
+recipeList:
+  - it.orlov.refactoring.YoSimple:
+      fullyQualifiedClassName: com.example.app.Runner

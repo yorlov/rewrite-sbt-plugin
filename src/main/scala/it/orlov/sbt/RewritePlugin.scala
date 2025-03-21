@@ -1,13 +1,13 @@
 package it.orlov.sbt
 
+import it.orlov.sbt.util.RewriteUtil
 import org.openrewrite.InMemoryExecutionContext
-import org.openrewrite.config.Environment
 import org.openrewrite.internal.InMemoryLargeSourceSet
 import org.openrewrite.java.JavaParser
-import sbt.Keys.{ivyConfigurations, libraryDependencies, sources, update}
+import sbt.Keys.*
+import sbt.io.syntax.*
 import sbt.{AutoPlugin, Compile, IO, ModuleID, Setting, config, moduleIDConfigurable, sbtSlashSyntaxRichConfiguration, settingKey, taskKey}
 
-import java.net.{URL, URLClassLoader}
 import scala.jdk.CollectionConverters.seqAsJavaListConverter
 
 object RewritePlugin extends AutoPlugin {
@@ -16,6 +16,7 @@ object RewritePlugin extends AutoPlugin {
     val recipeArtifacts = settingKey[Seq[ModuleID]]("recipeArtifacts")
     val activeRecipes = settingKey[Seq[String]]("activeRecipes")
     val rewriteRun = taskKey[Unit]("rewriteRun")
+    val rewriteConfig = taskKey[Option[File]]("rewriteConfig")
   }
 
   import autoImport.*
@@ -25,17 +26,16 @@ object RewritePlugin extends AutoPlugin {
   override lazy val projectSettings: Seq[Setting[?]] = Seq(
     recipeArtifacts := Seq(),
     activeRecipes := Seq(),
+    rewriteConfig := Some(baseDirectory.value / "rewrite.yml"),
 
     ivyConfigurations += RewriteConfig,
     libraryDependencies ++= recipeArtifacts.value.map(_ % RewriteConfig),
 
     rewriteRun := {
-      val recipeDependencies = update.value.configuration(RewriteConfig)
-        .fold(Seq.empty[URL])(_.modules.flatMap(_.artifacts.map(_._2.toURI.toURL)))
-
-      val environment = Environment.builder()
-        .scanClassLoader(new URLClassLoader(recipeDependencies.toArray, getClass.getClassLoader))
-        .build()
+      val environment = RewriteUtil.environment(
+        update.value.configuration(RewriteConfig),
+        rewriteConfig.value
+      )
 
       val recipe = environment.activateRecipes(activeRecipes.value *)
 
