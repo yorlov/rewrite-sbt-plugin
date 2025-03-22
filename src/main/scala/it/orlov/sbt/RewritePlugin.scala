@@ -16,7 +16,8 @@ object RewritePlugin extends AutoPlugin {
     val recipeArtifacts = settingKey[Seq[ModuleID]]("recipeArtifacts")
     val activeRecipes = settingKey[Seq[String]]("activeRecipes")
     val rewriteRun = taskKey[Unit]("rewriteRun")
-    val rewriteConfig = taskKey[Option[File]]("rewriteConfig")
+    val rewriteConfig = settingKey[Option[File]]("rewriteConfig")
+    val failOnInvalidActiveRecipes = settingKey[Boolean]("failOnInvalidActiveRecipes")
   }
 
   import autoImport.*
@@ -27,6 +28,7 @@ object RewritePlugin extends AutoPlugin {
     recipeArtifacts := Seq(),
     activeRecipes := Seq(),
     rewriteConfig := Some(baseDirectory.value / "rewrite.yml"),
+    failOnInvalidActiveRecipes := false,
 
     ivyConfigurations += RewriteConfig,
     libraryDependencies ++= recipeArtifacts.value.map(_ % RewriteConfig),
@@ -39,7 +41,21 @@ object RewritePlugin extends AutoPlugin {
 
       val recipe = environment.activateRecipes(activeRecipes.value *)
 
-      val executionContext = new InMemoryExecutionContext(println)
+      val logger = streams.value.log
+
+      val executionContext = new InMemoryExecutionContext(throwable => logger.error(s"Error during rewrite run $throwable"))
+
+      val validations = recipe.validateAll(executionContext, new java.util.ArrayList)
+
+      val failedValidations = validations.stream.flatMap(_.failures.stream()).toList
+      if (!failedValidations.isEmpty) {
+        failedValidations.forEach(failed => logger.error(s"Recipe validation error in ${failed.getProperty}: ${failed.getMessage}"))
+        if (failOnInvalidActiveRecipes.value) {
+          sys.error("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.")
+        } else {
+          logger.error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.")
+        }
+      }
 
       val parser = JavaParser.fromJavaVersion.build()
 
