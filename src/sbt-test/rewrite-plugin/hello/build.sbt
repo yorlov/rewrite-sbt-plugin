@@ -4,10 +4,9 @@ version := "0.1.0-SNAPSHOT"
 
 resolvers += Resolver.mavenLocal
 
-recipeArtifacts ++= Seq(
-  "it.orlov.refactoring" % "refactoring-examples" % "0.1.0-SNAPSHOT"
-)
+recipeArtifacts += "org.openrewrite.recipe" % "rewrite-migrate-java" % "3.4.0"
 
 activeRecipes ++= Seq(
-  "Yo"
+  "Yo",
+  "org.openrewrite.staticanalysis.UseSystemLineSeparator"
 )

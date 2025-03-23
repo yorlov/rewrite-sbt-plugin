@@ -4,6 +4,7 @@ import it.orlov.sbt.util.RewriteUtil
 import org.openrewrite.InMemoryExecutionContext
 import org.openrewrite.internal.InMemoryLargeSourceSet
 import org.openrewrite.java.JavaParser
+import org.openrewrite.polyglot.OmniParser
 import sbt.Keys.*
 import sbt.io.syntax.*
 import sbt.{AutoPlugin, Compile, IO, ModuleID, Setting, config, moduleIDConfigurable, sbtSlashSyntaxRichConfiguration, settingKey, taskKey}
@@ -57,18 +58,36 @@ object RewritePlugin extends AutoPlugin {
         }
       }
 
-      val parser = JavaParser.fromJavaVersion.build()
+      val parser = OmniParser.builder(
+          OmniParser.defaultResourceParsers(),
+          JavaParser.fromJavaVersion.build()
+        )
+        .build()
 
-      val sourcePaths = (Compile / sources).value.map(_.toPath).asJava
+      val sourcePaths = Seq.concat(
+          (Compile / sources).value,
+          (Compile / resources).value
+        )
+        .map(_.toPath).asJava
 
       val sourceFiles = parser.parse(sourcePaths, null, executionContext).toList
 
       val recipeRun = recipe.run(new InMemoryLargeSourceSet(sourceFiles), executionContext)
 
       recipeRun.getChangeset.getAllResults.forEach(result => {
-        val after = result.getAfter
+        (Option(result.getBefore), Option(result.getAfter)) match {
+          case (None, None) => // This situation shouldn't happen / makes no sense
 
-        IO.write(after.getSourcePath.toFile, after.printAll)
+          case (None, Some(addedFile)) => IO.write(addedFile.getSourcePath.toFile, addedFile.printAll)
+
+          case (Some(deletedFile), None) => IO.delete(deletedFile.getSourcePath.toFile)
+
+          case (Some(before), Some(after)) =>
+            if (before.getSourcePath != after.getSourcePath) {
+              IO.move(before.getSourcePath.toFile, after.getSourcePath.toFile)
+            }
+            IO.write(after.getSourcePath.toFile, after.printAll)
+        }
       })
     }
   )

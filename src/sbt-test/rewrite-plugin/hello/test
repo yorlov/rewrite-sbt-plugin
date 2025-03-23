@@ -1,2 +1,4 @@
 > rewriteRun
 $ exec diff src/main/java/com/example/app/Runner.java expected/Runner.java
+$ exec diff src/main/resources/support.properties expected/support.properties
+-$ exists src/main/resources/response.json

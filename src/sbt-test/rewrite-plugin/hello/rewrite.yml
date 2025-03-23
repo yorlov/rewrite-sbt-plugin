@@ -2,5 +2,11 @@ type: specs.openrewrite.org/v1beta/recipe
 name: Yo
 displayName: Hi
 recipeList:
-  - it.orlov.refactoring.YoSimple:
-      fullyQualifiedClassName: com.example.app.Runner
+  - org.openrewrite.java.AddCommentToMethod:
+      comment: print greetings
+      methodPattern: com.example.app.Runner main(..)
+  - org.openrewrite.DeleteSourceFiles:
+      filePattern: "**/src/main/resources/*.json"
+  - org.openrewrite.properties.CreatePropertiesFile:
+      relativeFileName: src/main/resources/support.properties
+      fileContents: "some.key=some"
