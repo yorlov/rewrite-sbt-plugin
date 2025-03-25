@@ -1,0 +1,42 @@
+name: Release
+run-name: Release ${{ github.event.inputs.version }}
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: 'Addon version'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release ${{ github.event.inputs.version }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - uses: sbt/setup-sbt@v1
+      - name: Set up Git
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "GitHub Actions"
+      - name: Perform release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          PGP_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
+          PGP_SECRET: ${{ secrets.SIGNING_KEY }}
+          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          echo "$PGP_SECRET" | gpg --batch --import --no-tty
+          sbt "release with-defaults release-version $RELEASE_VERSION"
